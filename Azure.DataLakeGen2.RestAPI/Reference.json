@@ -1,0 +1,160 @@
+{
+	"variables": [],
+	"info": {
+		"name": "Azure Data Lake Gen 2",
+		"_postman_id": "511aeb2e-6b7f-c74a-cccf-ca3b8a7f19fd",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "OAuth Token",
+			"request": {
+				"url": "https://login.microsoftonline.com/################/oauth2/v2.0/token",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "client_id",
+							"value": "###############################",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "###############################",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "grant_type",
+							"value": "client_credentials",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "scope",
+							"value": "https://storage.azure.com/.default",
+							"description": "",
+							"type": "text"
+						}
+					]
+				},
+				"description": "Collects the OAuth Token"
+			},
+			"response": []
+		},
+		{
+			"name": "Create File System",
+			"request": {
+				"url": {
+					"raw": "https://#############.dfs.core.windows.net/moimhdfs?resource=filesystem",
+					"protocol": "https",
+					"host": [
+						"bgadlsgen2",
+						"dfs",
+						"core",
+						"windows",
+						"net"
+					],
+					"path": [
+						"moimhdfs"
+					],
+					"query": [
+						{
+							"key": "resource",
+							"value": "filesystem",
+							"equals": true,
+							"description": ""
+						}
+					],
+					"variable": []
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ########################",
+						"description": ""
+					},
+					{
+						"key": "Content-Length",
+						"value": "0",
+						"description": ""
+					},
+					{
+						"key": "x-ms-version",
+						"value": "2018-11-09",
+						"description": ""
+					}
+				],
+				"body": {},
+				"description": "Creates a File System"
+			},
+			"response": []
+		},
+		{
+			"name": "Set ACL to Root Path '\\'",
+			"request": {
+				"url": {
+					"raw": "https://##################.dfs.core.windows.net/moimhdfs/?action=setAccessControl",
+					"protocol": "https",
+					"host": [
+						"##################",
+						"dfs",
+						"core",
+						"windows",
+						"net"
+					],
+					"path": [
+						"moimhdfs",
+						""
+					],
+					"query": [
+						{
+							"key": "action",
+							"value": "setAccessControl",
+							"equals": true,
+							"description": ""
+						}
+					],
+					"variable": []
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ####################",
+						"description": ""
+					},
+					{
+						"key": "Content-Length",
+						"value": "0",
+						"description": ""
+					},
+					{
+						"key": "x-ms-version",
+						"value": "2018-11-09",
+						"description": ""
+					},
+					{
+						"key": "x-ms-acl",
+						"value": "group:2dec2374-####-####-####-ad6f80ce4f0b:rwx",
+						"description": ""
+					}
+				],
+				"body": {},
+				"description": "Creates the Access scope to a group with RWX"
+			},
+			"response": []
+		}
+	]
+}
