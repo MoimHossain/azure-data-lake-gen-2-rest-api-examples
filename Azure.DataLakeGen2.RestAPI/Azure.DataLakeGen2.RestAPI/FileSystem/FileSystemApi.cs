@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace Azure.DataLakeGen2.RestAPI.FileSystem
 {
@@ -21,6 +22,7 @@ namespace Azure.DataLakeGen2.RestAPI.FileSystem
         private const string ACK_HEADER_NAME = "x-ms-acl";
         private const string API_VERSION_HEADER_NAME = "x-ms-version";
         private const string API_VERSION_HEADER_VALUE = "2018-11-09";
+        private int Timeout = 100;
 
         public FileSystemApi(string storageAccountName, OAuthTokenProvider tokenProvider)
         {
@@ -58,7 +60,7 @@ namespace Azure.DataLakeGen2.RestAPI.FileSystem
             return response.IsSuccessStatusCode;
         }
 
-        public async Task<bool> CreateFileAsync(string fileSystemName, string fullPath)
+        public async Task<bool> CreateEmptyFileAsync(string fileSystemName, string path, string fileName)
         {
             var tokenInfo = await tokenProvider.GetAccessTokenV2EndpointAsync();
 
@@ -67,9 +69,39 @@ namespace Azure.DataLakeGen2.RestAPI.FileSystem
             headers.Clear();
             headers.Add("Authorization", $"Bearer {tokenInfo.access_token}");
             headers.Add(API_VERSION_HEADER_NAME, API_VERSION_HEADER_VALUE);
-            var response = await Statics.Http.PutAsync($"{baseUri}{WebUtility.UrlEncode(fileSystemName)}{fullPath}?resource=file", jsonContent);
+            var response = await Statics.Http.PutAsync($"{baseUri}{WebUtility.UrlEncode(fileSystemName)}{path}{fileName}?resource=file", jsonContent);
 
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> CreateFileAsync(string filesystem, string path, 
+            string fileName, Stream stream)
+        {           
+            var operationResult = await this.CreateEmptyFileAsync(filesystem, path, fileName);
+            if (operationResult)
+            {
+                var tokenInfo = await tokenProvider.GetAccessTokenV2EndpointAsync();
+                var headers = Statics.Http.DefaultRequestHeaders;
+                headers.Clear();
+                headers.Add("Authorization", $"Bearer {tokenInfo.access_token}");
+                headers.Add(API_VERSION_HEADER_NAME, API_VERSION_HEADER_VALUE);
+
+                using (var streamContent = new StreamContent(stream))
+                {
+                    var resourceUrl = $"{baseUri}{filesystem}{path}{fileName}?action=append&timeout={this.Timeout}&position=0";
+                    var msg = new HttpRequestMessage(new HttpMethod("PATCH"), resourceUrl);
+                    msg.Content = streamContent;
+                    var response = await Statics.Http.SendAsync(msg);
+
+                    //flush the buffer to commit the file
+                    var flushUrl = $"{baseUri}{filesystem}{path}{fileName}?action=flush&timeout={this.Timeout}&position={msg.Content.Headers.ContentLength}";
+                    var flushMsg = new HttpRequestMessage(new HttpMethod("PATCH"), flushUrl);
+                    response = await Statics.Http.SendAsync(flushMsg);
+
+                    return response.IsSuccessStatusCode;
+                }
+            }
+            return false;
         }
 
         public async Task<bool> SetAccessControlAsync(string fileSystemName, string path, AclEntry[] acls)
